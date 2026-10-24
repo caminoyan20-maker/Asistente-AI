@@ -1,7 +1,8 @@
 import streamlit as st
 import google.generativeai as genai
+import concurrent.futures
 
-# 1. Configuración de la página (Modo ancho para mejor diseño)
+# 1. Configuración de la página
 st.set_page_config(
     page_title="SAY AI",
     page_icon="⚡",
@@ -9,22 +10,17 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. Estilos CSS personalizados (Estética Neón / Cyberpunk inspirada en la imagen)
+# 2. Estilos CSS personalizados (Cyberpunk / Neón)
 st.markdown("""
     <style>
-    /* Fondo general oscuro */
     .stApp {
         background-color: #050b14;
         color: #e0f7fc;
     }
-    
-    /* Contenedor del encabezado */
     .hero-container {
         text-align: center;
         padding: 20px 0;
     }
-    
-    /* Título con efecto brillante azul neón */
     .neon-title {
         font-size: 3rem;
         font-weight: 800;
@@ -35,8 +31,6 @@ st.markdown("""
         margin-bottom: 0px;
         letter-spacing: 2px;
     }
-    
-    /* Subtítulo / Eslogan */
     .neon-subtitle {
         font-size: 0.95rem;
         color: #80d8ff;
@@ -46,8 +40,6 @@ st.markdown("""
         margin-bottom: 25px;
         text-shadow: 0 0 5px rgba(128, 216, 255, 0.4);
     }
-    
-    /* Burbujas del chat personalizadas */
     .stChatMessage {
         background-color: rgba(13, 27, 42, 0.8) !important;
         border: 1px solid rgba(0, 229, 255, 0.2);
@@ -64,8 +56,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 4. Configuración de múltiples API Keys para rotación automática
-# Puedes guardar varias claves en Secrets separadas por comas en una lista o usar una principal
+# 4. Configuración de API Keys múltiples
 api_keys = []
 if "GEMINI_API_KEYS" in st.secrets:
     api_keys = st.secrets["GEMINI_API_KEYS"]
@@ -73,44 +64,49 @@ elif "GEMINI_API_KEY" in st.secrets:
     api_keys = [st.secrets["GEMINI_API_KEY"]]
 
 if not api_keys:
-    st.error("⚠️ No se encontró ninguna API Key configurada en los Secrets de Streamlit.")
+    st.error("⚠️ No se encontró ninguna API Key configurada en los Secrets.")
     st.stop()
 
-# 5. Función de generación con rotación automática de claves en caso de límite (429)
-def generar_respuesta_con_rotacion(prompt):
-    for i, key in enumerate(api_keys):
+# 5. Función de generación con límite estricto de 5 segundos y rotación
+def generar_con_timeout(prompt):
+    for key in api_keys:
         try:
             genai.configure(api_key=key)
             model = genai.GenerativeModel("gemini-3.8-flash")
-            response = model.generate_content(prompt)
-            return response.text
+            
+            # Ejecutar con un subproceso limitado a 5 segundos exactos
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(model.generate_content, prompt)
+                response = future.result(timeout=5.0)  # Límite de 5 segundos
+                return response.text
+        except concurrent.futures.TimeoutError:
+            # Si supera los 5 segundos, salta a la siguiente clave o reintenta
+            continue
         except Exception as e:
             error_str = str(e)
-            # Si se agota el límite, intentamos con la siguiente clave de la lista
             if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                 continue
             else:
-                return f"❌ Ocurrió un error: {e}"
-    return "❌ Todas las claves configuradas han alcanzado su límite diario. Por favor, añade más claves en los Secrets."
+                return f"❌ Error: {e}"
+    return "⏱️ La consulta tardó más de 5 segundos o se agotaron los límites disponibles."
 
-# 6. Inicializar el historial del chat
+# 6. Historial de chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 7. Mostrar el historial de mensajes en pantalla
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 8. Entrada del usuario
+# 7. Entrada de chat del usuario
 if prompt := st.chat_input("Escribe un mensaje para SAY..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Iluminando conocimiento..."):
-            respuesta_texto = generar_respuesta_con_rotacion(prompt)
+        with st.spinner("Buscando con velocidad cuántica (máx 5s)..."):
+            respuesta_texto = generar_con_timeout(prompt)
             st.markdown(respuesta_texto)
             st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
             
