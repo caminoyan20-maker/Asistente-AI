@@ -1,90 +1,49 @@
-import time
-from google import genai
 import streamlit as st
+import google.generativeai as genai
 
-# Configuración de página
-st.set_page_config(page_title="SAY - Asistente de IA", page_icon="⚡", layout="centered")
+# 1. Configuración de la página
+st.set_page_config(page_title="SAY AI", page_icon="⚡")
 
-# --- BARRA LATERAL (SIDEBAR) ---
-with st.sidebar:
-    st.title("⚡ SAY AI")
-    st.caption("Tu asistente inteligente personal")
-    st.markdown("---")
-    
-    if st.button("🗑️ Limpiar conversación", use_container_width=True):
-        st.session_state.messages = []
-        st.rerun()
-        
-    st.markdown("---")
-    st.markdown("💡 **Tip:** Pregúntale a SAY cualquier duda, resumen o tarea que necesites.")
+st.title("⚡ SAY AI")
+st.subheader("Tu asistente inteligente personal")
+st.caption("💡 Tip: Pregúntale a SAY cualquier duda, resumen o tarea que necesites.")
 
-# --- ENCABEZADO ---
-st.title("✨ Hola, soy SAY")
-st.subheader("¿En qué te puedo ayudar hoy?")
-
-# 1. Leer la clave de forma segura desde Secrets
-if "GEMINI_API_KEY" in st.secrets:
+# 2. Configuración de la API Key desde los Secrets de Streamlit
+try:
     api_key = st.secrets["GEMINI_API_KEY"]
-    client = genai.Client(api_key=api_key)
-else:
-    st.error("No se encontró la clave GEMINI_API_KEY en los Secrets de Streamlit.")
+    genai.configure(api_key=api_key)
+    # Usamos gemini-1.5-flash para alta velocidad y límites estándar del nivel gratuito
+    model = genai.GenerativeModel("gemini-1.5-flash")
+except Exception as e:
+    st.error("⚠️ No se encontró la API Key en los Secrets o no es válida.")
     st.stop()
 
-# 2. Inicializar historial de chat
+# 3. Inicializar el historial de chat en la sesión
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 3. Mostrar el historial en pantalla
+# 4. Mostrar los mensajes previos del chat
 for message in st.session_state.messages:
-    avatar = "🧑‍💻" if message["role"] == "user" else "🤖"
-    with st.chat_message(message["role"], avatar=avatar):
+    with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 4. Entrada del usuario con reintentos automáticos para evitar el error 503
+# 5. Entrada de usuario y generación de respuesta
 if prompt := st.chat_input("Escribe un mensaje para SAY..."):
+    # Guardar y mostrar el mensaje del usuario
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="🧑‍💻"):
+    with st.chat_message("user"):
         st.markdown(prompt)
 
-    with st.chat_message("assistant", avatar="🤖"):
-        message_placeholder = st.empty()
-        message_placeholder.markdown("SAY está pensando...")
-        
-        exito = False
-        respuesta_completa = ""
-        max_intentos = 5
-        
-        # Bucle de reintento automático si los servidores están saturados (503)
-        for intento in range(max_intentos):
-            try:
-                response_stream = client.models.generate_content_stream(
-                    model="gemini-3.8-flash",
-                    contents=prompt,
-                    config={
-                        "system_instruction": "Te llamas SAY. Eres un asistente virtual inteligente, servicial y amable. Responde SIEMPRE en español con excelente formato."
-                    }
-                )
+    # Generar respuesta con manejo de errores
+    with st.chat_message("assistant"):
+        try:
+            with st.spinner("Pensando..."):
+                response = model.generate_content(prompt)
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+        except Exception as e:
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                st.error("❌ Se ha superado el límite de consultas por día/minuto de la API Key actual. Por favor, intenta de nuevo más tarde o revisa tu clave en Google AI Studio.")
+            else:
+                st.error(f"❌ Ocurrió un error al conectar con Gemini: {e}")
                 
-                respuesta_completa = ""
-                for chunk in response_stream:
-                    if chunk.text:
-                        respuesta_completa += chunk.text
-                        message_placeholder.markdown(respuesta_completa + "▌")
-                
-                message_placeholder.markdown(respuesta_completa)
-                exito = True
-                break  # Si responde con éxito, salimos del bucle
-                
-            except Exception as e:
-                error_str = str(e)
-                if ("503" in error_str or "UNAVAILABLE" in error_str) and intento < max_intentos - 1:
-                    message_placeholder.markdown(f"⚠️ Alta demanda en el servidor. Reintentando automáticamente (intento {intento+2}/{max_intentos})...")
-                    time.sleep(3) # Espera 3 segundos antes de volver a intentar
-                else:
-                    if not exito:
-                        message_placeholder.error(f"❌ No se pudo conectar tras varios intentos. Detalle: {e}")
-                        break
-                        
-        if exito and respuesta_completa:
-            st.session_state.messages.append({"role": "assistant", "content": respuesta_completa})
-                    
