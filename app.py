@@ -28,7 +28,7 @@ if prompt := st.chat_input("Escribe algo para tu asistente..."):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents=prompt,
         )
 
@@ -40,4 +40,5 @@ if prompt := st.chat_input("Escribe algo para tu asistente..."):
         )
     except Exception as e:
         st.error(f"Ocurrió un error al consultar a Gemini: {e}")
+        
         
