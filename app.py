@@ -1,4 +1,4 @@
-    from google import genai
+from google import genai
 import streamlit as st
 
 st.title("🤖 Mi Asistente de IA")
