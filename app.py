@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-import concurrent.futures
 
 # 1. Configuración de la página
 st.set_page_config(
@@ -67,30 +66,7 @@ if not api_keys:
     st.error("⚠️ No se encontró ninguna API Key configurada en los Secrets.")
     st.stop()
 
-# 5. Función de generación con límite estricto de 5 segundos y rotación
-def generar_con_timeout(prompt):
-    for key in api_keys:
-        try:
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel("gemini-3.8-flash")
-            
-            # Ejecutar con un subproceso limitado a 5 segundos exactos
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(model.generate_content, prompt)
-                response = future.result(timeout=5.0)  # Límite de 5 segundos
-                return response.text
-        except concurrent.futures.TimeoutError:
-            # Si supera los 5 segundos, salta a la siguiente clave o reintenta
-            continue
-        except Exception as e:
-            error_str = str(e)
-            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                continue
-            else:
-                return f"❌ Error: {e}"
-    return "⏱️ La consulta tardó más de 5 segundos o se agotaron los límites disponibles."
-
-# 6. Historial de chat
+# 5. Historial de chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -98,15 +74,47 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 7. Entrada de chat del usuario
+# 6. Entrada de chat con streaming ultrarrápido y rotación de claves
 if prompt := st.chat_input("Escribe un mensaje para SAY..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Buscando con velocidad cuántica (máx 5s)..."):
-            respuesta_texto = generar_con_timeout(prompt)
-            st.markdown(respuesta_texto)
-            st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
+        placeholder = st.empty()
+        placeholder.markdown("⚡ Conectando al núcleo cuántico...")
+        
+        texto_final = ""
+        exito = False
+        
+        for key in api_keys:
+            try:
+                genai.configure(api_key=key)
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                
+                # Generar respuesta en tiempo real (streaming)
+                response = model.generate_content(prompt, stream=True)
+                texto_final = ""
+                for chunk in response:
+                    texto_final += chunk.text
+                    placeholder.markdown(texto_final + "▌")
+                
+                placeholder.markdown(texto_final)
+                exito = True
+                break
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    continue
+                else:
+                    texto_final = f"❌ Error: {e}"
+                    placeholder.markdown(texto_final)
+                    exito = True
+                    break
+                    
+        if not exito:
+            texto_final = "❌ Todas las claves configuradas han alcanzado su límite diario."
+            placeholder.markdown(texto_final)
             
+        st.session_state.messages.append({"role": "assistant", "content": texto_final})
+        
