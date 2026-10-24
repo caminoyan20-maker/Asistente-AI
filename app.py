@@ -1,7 +1,7 @@
-from google import genai
+import google.generativeai as genai
 import streamlit as st
 
-# Configuración de página con icono y título
+# Configuración de página
 st.set_page_config(page_title="SAY - Asistente de IA", page_icon="⚡", layout="centered")
 
 # --- BARRA LATERAL (SIDEBAR) ---
@@ -10,13 +10,12 @@ with st.sidebar:
     st.caption("Tu asistente inteligente personal")
     st.markdown("---")
     
-    # Botón para reiniciar conversación
     if st.button("🗑️ Limpiar conversación", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
         
     st.markdown("---")
-    st.markdown("💡 **Tip:** Puedes preguntarle a SAY sobre cualquier tema, pedirle resúmenes o ideas creativas.")
+    st.markdown("💡 **Tip:** Pregúntale a SAY cualquier duda, resumen o tarea que necesites.")
 
 # --- ENCABEZADO ---
 st.title("✨ Hola, soy SAY")
@@ -25,7 +24,7 @@ st.subheader("¿En qué te puedo ayudar hoy?")
 # 1. Leer la clave de forma segura desde Secrets
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
 else:
     st.error("No se encontró la clave GEMINI_API_KEY en los Secrets de Streamlit.")
     st.stop()
@@ -34,7 +33,7 @@ else:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 3. Mostrar el historial en pantalla con avatares personalizados
+# 3. Mostrar el historial en pantalla
 for message in st.session_state.messages:
     avatar = "🧑‍💻" if message["role"] == "user" else "🤖"
     with st.chat_message(message["role"], avatar=avatar):
@@ -49,18 +48,15 @@ if prompt := st.chat_input("Escribe un mensaje para SAY..."):
     with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("SAY está pensando..."):
             try:
-                response = client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=prompt,
-                    config={
-                        "system_instruction": "Te llamas SAY. Eres un asistente virtual inteligente, servicial y amable. Responde SIEMPRE en español con excelente formato."
-                    }
+                # Usamos el modelo y la instrucción de sistema de forma estable
+                model = genai.GenerativeModel(
+                    model_name="gemini-1.5-flash",
+                    system_instruction="Te llamas SAY. Eres un asistente virtual inteligente, servicial y amable. Responde SIEMPRE en español con excelente formato."
                 )
+                response = model.generate_content(prompt)
+                
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
-                if "503" in str(e) or "UNAVAILABLE" in str(e):
-                    st.warning("⚠️ Los servidores están experimentando un pico de alta demanda. Por favor, reintenta enviar tu mensaje en unos segundos.")
-                else:
-                    st.error(f"Ocurrió un error al consultar a SAY: {e}")
-                    
+                st.error(f"⚠️ Ocurrió un error al procesar tu mensaje: {e}")
+                
