@@ -13,8 +13,8 @@ try:
     api_key = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=api_key)
     
-    # Modelo oficial y activo de respuesta rápida
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    # Modelo requerido por la API
+    model = genai.GenerativeModel("gemini-3.8-flash")
 except Exception as e:
     st.error("⚠️ No se encontró la API Key en los Secrets o no está configurada correctamente.")
     st.stop()
@@ -42,7 +42,7 @@ if prompt := st.chat_input("Escribe un mensaje para SAY..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
             if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                st.error("❌ Límite temporal de consultas alcanzado. Revisa tu clave o intenta en unos minutos.")
+                st.error("❌ Se ha alcanzado el límite diario o temporal de consultas. Intenta de nuevo más tarde o genera una API Key nueva en Google AI Studio.")
             else:
                 st.error(f"❌ Ocurrió un error: {e}")
                 
