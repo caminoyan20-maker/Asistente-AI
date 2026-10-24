@@ -41,4 +41,3 @@ if prompt := st.chat_input("Escribe algo para tu asistente..."):
     except Exception as e:
         st.error(f"Ocurrió un error al consultar a Gemini: {e}")
         
-        
