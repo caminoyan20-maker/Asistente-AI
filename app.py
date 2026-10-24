@@ -1,5 +1,32 @@
+    from google import genai
+import streamlit as st
+
+st.title("🤖 Mi Asistente de IA")
+
+# 1. Leer la clave de forma segura desde Secrets
+if "GEMINI_API_KEY" in st.secrets:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    client = genai.Client(api_key=api_key)
+else:
+    st.error("No se encontró la clave GEMINI_API_KEY en los Secrets de Streamlit.")
+    st.stop()
+
+# 2. Inicializar historial de chat
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# 3. Mostrar el historial en pantalla
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# 4. Entrada del usuario y generación de respuesta
+if prompt := st.chat_input("Escribe algo para tu asistente..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
     try:
-        # Intentamos consultar el modelo principal
         response = client.models.generate_content(
             model="gemini-3.8-flash",
             contents=prompt,
@@ -12,7 +39,6 @@
             {"role": "assistant", "content": response.text}
         )
     except Exception as e:
-        # Si el servidor de Google está saturado (Error 503/429), le damos un mensaje amigable
         if "503" in str(e) or "UNAVAILABLE" in str(e):
             st.warning("⚠️ Los servidores de Gemini están experimentando alta demanda en este momento. Por favor, reintenta enviar tu mensaje en unos segundos.")
         else:
