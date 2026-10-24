@@ -1,7 +1,7 @@
 from google import genai
 import streamlit as st
 
-st.title("🤖 Mi Asistente de IA")
+st.title("🤖 SAY")
 
 # 1. Leer la clave de forma segura desde Secrets
 if "GEMINI_API_KEY" in st.secrets:
@@ -21,26 +21,27 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # 4. Entrada del usuario y generación de respuesta
-if prompt := st.chat_input("Escribe algo para tu asistente..."):
+if prompt := st.chat_input("Escribe algo para SAY..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     try:
-        response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=prompt,
-        )
-
+        # Mostramos una animación mientras SAY responde
         with st.chat_message("assistant"):
-            st.markdown(response.text)
+            with st.spinner("SAY está pensando..."):
+                response = client.models.generate_content(
+                    model="gemini-3.8-flash",
+                    contents=prompt,
+                    config={
+                        "system_instruction": "Te llamas SAY. Eres un asistente virtual servicial, inteligente y amable. Responde SIEMPRE en español fluido y claro, independientemente de cómo te pregunte el usuario."
+                    }
+                )
+                st.markdown(response.text)
 
         st.session_state.messages.append(
             {"role": "assistant", "content": response.text}
         )
     except Exception as e:
-        if "503" in str(e) or "UNAVAILABLE" in str(e):
-            st.warning("⚠️ Los servidores de Gemini están experimentando alta demanda en este momento. Por favor, reintenta enviar tu mensaje en unos segundos.")
-        else:
-            st.error(f"Ocurrió un error al consultar a Gemini: {e}")
-            
+        if "503" in str(e) or "UNAVAILABLE" in
+        
