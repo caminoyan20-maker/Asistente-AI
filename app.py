@@ -90,7 +90,8 @@ if prompt := st.chat_input("Escribe un mensaje para SAY..."):
         for key in api_keys:
             try:
                 genai.configure(api_key=key)
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                # Modelo actualizado y oficial
+                model = genai.GenerativeModel("gemini-2.5-flash")
                 
                 # Generar respuesta en tiempo real (streaming)
                 response = model.generate_content(prompt, stream=True)
@@ -117,4 +118,4 @@ if prompt := st.chat_input("Escribe un mensaje para SAY..."):
             placeholder.markdown(texto_final)
             
         st.session_state.messages.append({"role": "assistant", "content": texto_final})
-        
+    
