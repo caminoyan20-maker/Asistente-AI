@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from google import genai
 import streamlit as st
 
 # Configuración de página
@@ -24,7 +24,7 @@ st.subheader("¿En qué te puedo ayudar hoy?")
 # 1. Leer la clave de forma segura desde Secrets
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 else:
     st.error("No se encontró la clave GEMINI_API_KEY en los Secrets de Streamlit.")
     st.stop()
@@ -48,12 +48,13 @@ if prompt := st.chat_input("Escribe un mensaje para SAY..."):
     with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("SAY está pensando..."):
             try:
-                model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash",
-                    system_instruction="Te llamas SAY. Eres un asistente virtual inteligente, servicial y amable. Responde SIEMPRE en español con excelente formato."
+                response = client.models.generate_content(
+                    model="gemini-3.8-flash",
+                    contents=prompt,
+                    config={
+                        "system_instruction": "Te llamas SAY. Eres un asistente virtual inteligente, servicial y amable. Responde SIEMPRE en español con excelente formato."
+                    }
                 )
-                response = model.generate_content(prompt)
-                
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
