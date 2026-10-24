@@ -1,3 +1,2 @@
-plyer
 streamlit
-google-genai
+google-generativeai
