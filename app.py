@@ -1,48 +1,116 @@
 import streamlit as st
 import google.generativeai as genai
 
-# 1. Configuración de la interfaz
-st.set_page_config(page_title="SAY AI", page_icon="⚡")
+# 1. Configuración de la página (Modo ancho para mejor diseño)
+st.set_page_config(
+    page_title="SAY AI",
+    page_icon="⚡",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-st.title("⚡ SAY AI")
-st.subheader("Tu asistente inteligente personal")
-st.caption("💡 Tip: Pregúntale a SAY cualquier duda, resumen o tarea que necesites.")
-
-# 2. Configuración de la API Key y Modelo
-try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
+# 2. Estilos CSS personalizados (Estética Neón / Cyberpunk inspirada en la imagen)
+st.markdown("""
+    <style>
+    /* Fondo general oscuro */
+    .stApp {
+        background-color: #050b14;
+        color: #e0f7fc;
+    }
     
-    # Modelo requerido por la API
-    model = genai.GenerativeModel("gemini-3.8-flash")
-except Exception as e:
-    st.error("⚠️ No se encontró la API Key en los Secrets o no está configurada correctamente.")
+    /* Contenedor del encabezado */
+    .hero-container {
+        text-align: center;
+        padding: 20px 0;
+    }
+    
+    /* Título con efecto brillante azul neón */
+    .neon-title {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #00e5ff;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.6), 
+                     0 0 20px rgba(0, 229, 255, 0.4), 
+                     0 0 30px rgba(0, 229, 255, 0.2);
+        margin-bottom: 0px;
+        letter-spacing: 2px;
+    }
+    
+    /* Subtítulo / Eslogan */
+    .neon-subtitle {
+        font-size: 0.95rem;
+        color: #80d8ff;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        margin-top: 5px;
+        margin-bottom: 25px;
+        text-shadow: 0 0 5px rgba(128, 216, 255, 0.4);
+    }
+    
+    /* Burbujas del chat personalizadas */
+    .stChatMessage {
+        background-color: rgba(13, 27, 42, 0.8) !important;
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        border-radius: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 3. Encabezado visual
+st.markdown("""
+    <div class="hero-container">
+        <div class="neon-title">SAY AI</div>
+        <div class="neon-subtitle">Quantum AI Search Engine &bull; Illuminating Knowledge</div>
+    </div>
+""", unsafe_allow_html=True)
+
+# 4. Configuración de múltiples API Keys para rotación automática
+# Puedes guardar varias claves en Secrets separadas por comas en una lista o usar una principal
+api_keys = []
+if "GEMINI_API_KEYS" in st.secrets:
+    api_keys = st.secrets["GEMINI_API_KEYS"]
+elif "GEMINI_API_KEY" in st.secrets:
+    api_keys = [st.secrets["GEMINI_API_KEY"]]
+
+if not api_keys:
+    st.error("⚠️ No se encontró ninguna API Key configurada en los Secrets de Streamlit.")
     st.stop()
 
-# 3. Inicializar el historial del chat
+# 5. Función de generación con rotación automática de claves en caso de límite (429)
+def generar_respuesta_con_rotacion(prompt):
+    for i, key in enumerate(api_keys):
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel("gemini-3.8-flash")
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            error_str = str(e)
+            # Si se agota el límite, intentamos con la siguiente clave de la lista
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                continue
+            else:
+                return f"❌ Ocurrió un error: {e}"
+    return "❌ Todas las claves configuradas han alcanzado su límite diario. Por favor, añade más claves en los Secrets."
+
+# 6. Inicializar el historial del chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 4. Mostrar el historial de mensajes
+# 7. Mostrar el historial de mensajes en pantalla
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 5. Entrada del usuario y generación de respuesta
+# 8. Entrada del usuario
 if prompt := st.chat_input("Escribe un mensaje para SAY..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        try:
-            with st.spinner("Pensando..."):
-                response = model.generate_content(prompt)
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception as e:
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                st.error("❌ Se ha alcanzado el límite diario o temporal de consultas. Intenta de nuevo más tarde o genera una API Key nueva en Google AI Studio.")
-            else:
-                st.error(f"❌ Ocurrió un error: {e}")
-                
+        with st.spinner("Iluminando conocimiento..."):
+            respuesta_texto = generar_respuesta_con_rotacion(prompt)
+            st.markdown(respuesta_texto)
+            st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
+            
