@@ -48,7 +48,6 @@ if prompt := st.chat_input("Escribe un mensaje para SAY..."):
     with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("SAY está pensando..."):
             try:
-                # Usamos el modelo y la instrucción de sistema de forma estable
                 model = genai.GenerativeModel(
                     model_name="gemini-1.5-flash",
                     system_instruction="Te llamas SAY. Eres un asistente virtual inteligente, servicial y amable. Responde SIEMPRE en español con excelente formato."
