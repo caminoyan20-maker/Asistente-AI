@@ -14,7 +14,7 @@ st.set_page_config(
 if "intro_visto" not in st.session_state:
     st.session_state.intro_visto = False
 
-# Estilos CSS Cyberpunk / Neón y reubicación discreta de flechas para que no estorben
+# Estilos CSS Cyberpunk / Neón y flechas arriba a la derecha
 st.markdown("""
     <style>
     .stApp {
@@ -59,11 +59,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Botones flotantes reubicados en la esquina inferior derecha (muy discretos para que no molesten)
+# Botones de desplazamiento ubicados en la PARTE SUPERIOR DERECHA (discretos)
 st.markdown("""
-    <div style="position: fixed; bottom: 20px; right: 15px; z-index: 9999; display: flex; flex-direction: column; gap: 5px; opacity: 0.8;">
-        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'});" style="background: rgba(0, 229, 255, 0.8); color: #050b14; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; cursor: pointer; box-shadow: 0 0 8px #00e5ff;">▲</button>
-        <button onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});" style="background: rgba(0, 229, 255, 0.8); color: #050b14; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; cursor: pointer; box-shadow: 0 0 8px #00e5ff;">▼</button>
+    <div style="position: fixed; top: 12px; right: 15px; z-index: 9999; display: flex; gap: 5px; opacity: 0.85;">
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'});" style="background: rgba(0, 229, 255, 0.9); color: #050b14; border: none; border-radius: 50%; width: 30px; height: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 0 6px #00e5ff;" title="Ir arriba">▲</button>
+        <button onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});" style="background: rgba(0, 229, 255, 0.9); color: #050b14; border: none; border-radius: 50%; width: 30px; height: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 0 6px #00e5ff;" title="Ir abajo">▼</button>
     </div>
 """, unsafe_allow_html=True)
 
@@ -142,7 +142,7 @@ for message in st.session_state.messages:
         if "image" in message and message["image"] is not None:
             st.image(message["image"], width=200)
 
-# Entrada de chat con memoria y soporte multimodal
+# Entrada de chat con memoria, soporte multimodal y respaldo automático de modelos
 if prompt := st.chat_input("Escribe tu consulta a SAY..."):
     image_pil = None
     if uploaded_file is not None:
@@ -166,8 +166,20 @@ if prompt := st.chat_input("Escribe tu consulta a SAY..."):
         for key in api_keys:
             try:
                 genai.configure(api_key=key)
-                # Modelo corregido compatible con la versión actual de la librería
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                
+                # Sistema de respaldo automático de modelos para evitar errores 404
+                modelos_a_probar = ["gemini-1.5-flash", "gemini-pro"]
+                model = None
+                
+                for nombre_modelo in modelos_a_probar:
+                    try:
+                        model = genai.GenerativeModel(nombre_modelo)
+                        break
+                    except Exception:
+                        continue
+                
+                if model is None:
+                    model = genai.GenerativeModel("gemini-pro")
                 
                 content_inputs = []
                 if image_pil:
@@ -205,3 +217,4 @@ if prompt := st.chat_input("Escribe tu consulta a SAY..."):
             placeholder.markdown(texto_final)
             
         st.session_state.messages.append({"role": "assistant", "content": texto_final, "image": None})
+        
