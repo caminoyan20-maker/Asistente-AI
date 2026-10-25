@@ -78,7 +78,7 @@ if not api_keys:
     st.error("⚠️ No se encontró ninguna API Key configurada en los Secrets.")
     st.stop()
 
-# 4. PANTALLA DE BIENVENIDA (Primera Imagen: Cerebro Holográfico)[span_0](start_span)[span_0](end_span)
+# 4. PANTALLA DE BIENVENIDA (Primera Imagen: Cerebro Holográfico)[span_1](start_span)[span_1](end_span)
 if not st.session_state.intro_visto:
     st.markdown("""
         <div class='hero-container'>
@@ -99,7 +99,7 @@ if not st.session_state.intro_visto:
         st.rerun()
     st.stop()
 
-# 5. INTERFAZ PRINCIPAL (Segunda Imagen dentro del marco)[span_1](start_span)[span_1](end_span)
+# 5. INTERFAZ PRINCIPAL (Segunda Imagen dentro del marco)[span_2](start_span)[span_2](end_span)
 with st.sidebar:
     st.markdown("### ⚙️ Panel de Control SAY")
     if st.button("🏠 Ver Intro Nuevamente", use_container_width=True):
@@ -142,7 +142,7 @@ for message in st.session_state.messages:
         if "image" in message and message["image"] is not None:
             st.image(message["image"], width=200)
 
-# Entrada de chat con memoria, soporte multimodal y respaldo automático de modelos
+# Entrada de chat con búsqueda automática de modelo disponible para evitar errores 404
 if prompt := st.chat_input("Escribe tu consulta a SAY..."):
     image_pil = None
     if uploaded_file is not None:
@@ -158,7 +158,7 @@ if prompt := st.chat_input("Escribe tu consulta a SAY..."):
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
-        placeholder.markdown("⚡ Analizando con el núcleo cuántico...")
+        placeholder.markdown("⚡ Conectando al núcleo cuántico...")
         
         texto_final = ""
         exito = False
@@ -167,19 +167,17 @@ if prompt := st.chat_input("Escribe tu consulta a SAY..."):
             try:
                 genai.configure(api_key=key)
                 
-                # Sistema de respaldo automático de modelos para evitar errores 404
-                modelos_a_probar = ["gemini-1.5-flash", "gemini-pro"]
-                model = None
+                # Búsqueda dinámica del primer modelo disponible que soporte generación de contenido
+                modelo_a_usar = "gemini-1.5-flash"
+                try:
+                    for m in genai.list_models():
+                        if 'generateContent' in m.supported_generation_methods:
+                            modelo_a_usar = m.name
+                            break
+                except Exception:
+                    pass
                 
-                for nombre_modelo in modelos_a_probar:
-                    try:
-                        model = genai.GenerativeModel(nombre_modelo)
-                        break
-                    except Exception:
-                        continue
-                
-                if model is None:
-                    model = genai.GenerativeModel("gemini-pro")
+                model = genai.GenerativeModel(modelo_a_usar)
                 
                 content_inputs = []
                 if image_pil:
@@ -207,7 +205,7 @@ if prompt := st.chat_input("Escribe tu consulta a SAY..."):
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                     continue
                 else:
-                    texto_final = f"❌ Error de conexión: {e}"
+                    texto_final = f"❌ Error: {e}"
                     placeholder.markdown(texto_final)
                     exito = True
                     break
@@ -217,4 +215,4 @@ if prompt := st.chat_input("Escribe tu consulta a SAY..."):
             placeholder.markdown(texto_final)
             
         st.session_state.messages.append({"role": "assistant", "content": texto_final, "image": None})
-        
+    
