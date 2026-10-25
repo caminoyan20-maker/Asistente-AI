@@ -94,7 +94,7 @@ if not st.session_state.intro_visto:
         st.info("⚡ Cargando núcleo cuántico de bienvenida...")
         
     st.write("")
-    if st.button("🚀 Iniciar Sistema SAY", use_container_width=True, key="btn_start_intro"):
+    if st.button("🚀 Iniciar Sistema SAY", use_container_width=True, key="btn_start_intro_v3"):
         st.session_state.intro_visto = True
         st.rerun()
     st.stop()
@@ -102,10 +102,10 @@ if not st.session_state.intro_visto:
 # 5. INTERFAZ PRINCIPAL (Segunda Imagen dentro del marco)[span_1](start_span)[span_1](end_span)
 with st.sidebar:
     st.markdown("### ⚙️ Panel de Control SAY")
-    if st.button("🏠 Ver Intro Nuevamente", use_container_width=True, key="btn_ver_intro_sidebar"):
+    if st.button("🏠 Ver Intro Nuevamente", use_container_width=True, key="btn_ver_intro_sidebar_v3"):
         st.session_state.intro_visto = False
         st.rerun()
-    if st.button("🗑️ Limpiar Historial de Chat", use_container_width=True, key="btn_clear_history_sidebar"):
+    if st.button("🗑️ Limpiar Historial de Chat", use_container_width=True, key="btn_clear_history_sidebar_v3"):
         st.session_state.messages = []
         st.rerun()
 
@@ -124,9 +124,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Opción compacta para subir imágenes desde la galería con ID único
+# Opción compacta para subir imágenes desde la galería
 with st.expander("📁 Adjuntar imagen desde la galería", expanded=False):
-    uploaded_file = st.file_uploader("Selecciona una imagen (PNG, JPG)", type=["jpg", "jpeg", "png"], key="main_image_uploader")
+    uploaded_file = st.file_uploader("Selecciona una imagen (PNG, JPG)", type=["jpg", "jpeg", "png"], key="main_image_uploader_v3")
 
 if uploaded_file is not None:
     img_preview = Image.open(uploaded_file)
@@ -142,8 +142,8 @@ for message in st.session_state.messages:
         if "image" in message and message["image"] is not None:
             st.image(message["image"], width=200)
 
-# Entrada de chat con el modelo estable y rotación de claves
-if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input"):
+# Entrada de chat utilizando el modelo gemini-3.8-flash solicitado por Google
+if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input_v3"):
     image_pil = None
     if uploaded_file is not None:
         image_pil = Image.open(uploaded_file)
@@ -167,8 +167,8 @@ if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input"
             try:
                 genai.configure(api_key=key)
                 
-                # Usando gemini-1.5-flash que es el modelo estándar multimodal más rápido y compatible
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                # Modelo actualizado exactamente como lo pidió el mensaje de error de Google
+                model = genai.GenerativeModel("gemini-3.8-flash")
                 
                 content_inputs = []
                 if image_pil:
@@ -206,4 +206,4 @@ if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input"
             placeholder.markdown(texto_final)
             
         st.session_state.messages.append({"role": "assistant", "content": texto_final, "image": None})
-    
+        
