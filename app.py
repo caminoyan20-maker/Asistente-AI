@@ -78,7 +78,7 @@ if not api_keys:
     st.error("⚠️ No se encontró ninguna API Key configurada en los Secrets.")
     st.stop()
 
-# 4. PANTALLA DE BIENVENIDA (Primera Imagen: Cerebro Holográfico)[span_0](start_span)[span_0](end_span)
+# 4. PANTALLA DE BIENVENIDA (Primera Imagen: Cerebro Holográfico)
 if not st.session_state.intro_visto:
     st.markdown("""
         <div class='hero-container'>
@@ -94,18 +94,18 @@ if not st.session_state.intro_visto:
         st.info("⚡ Cargando núcleo cuántico de bienvenida...")
         
     st.write("")
-    if st.button("🚀 Iniciar Sistema SAY", use_container_width=True, key="btn_start_intro_v3"):
+    if st.button("🚀 Iniciar Sistema SAY", use_container_width=True, key="btn_start_intro_v4"):
         st.session_state.intro_visto = True
         st.rerun()
     st.stop()
 
-# 5. INTERFAZ PRINCIPAL (Segunda Imagen dentro del marco)[span_1](start_span)[span_1](end_span)
+# 5. INTERFAZ PRINCIPAL (Segunda Imagen dentro del marco)
 with st.sidebar:
     st.markdown("### ⚙️ Panel de Control SAY")
-    if st.button("🏠 Ver Intro Nuevamente", use_container_width=True, key="btn_ver_intro_sidebar_v3"):
+    if st.button("🏠 Ver Intro Nuevamente", use_container_width=True, key="btn_ver_intro_sidebar_v4"):
         st.session_state.intro_visto = False
         st.rerun()
-    if st.button("🗑️ Limpiar Historial de Chat", use_container_width=True, key="btn_clear_history_sidebar_v3"):
+    if st.button("🗑️ Limpiar Historial de Chat", use_container_width=True, key="btn_clear_history_sidebar_v4"):
         st.session_state.messages = []
         st.rerun()
 
@@ -126,7 +126,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 # Opción compacta para subir imágenes desde la galería
 with st.expander("📁 Adjuntar imagen desde la galería", expanded=False):
-    uploaded_file = st.file_uploader("Selecciona una imagen (PNG, JPG)", type=["jpg", "jpeg", "png"], key="main_image_uploader_v3")
+    uploaded_file = st.file_uploader("Selecciona una imagen (PNG, JPG)", type=["jpg", "jpeg", "png"], key="main_image_uploader_v4")
 
 if uploaded_file is not None:
     img_preview = Image.open(uploaded_file)
@@ -142,8 +142,8 @@ for message in st.session_state.messages:
         if "image" in message and message["image"] is not None:
             st.image(message["image"], width=200)
 
-# Entrada de chat utilizando el modelo gemini-3.8-flash solicitado por Google
-if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input_v3"):
+# Entrada de chat optimizada para máxima velocidad con Gemini 3.8 Flash
+if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input_v4"):
     image_pil = None
     if uploaded_file is not None:
         image_pil = Image.open(uploaded_file)
@@ -163,21 +163,30 @@ if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input_
         texto_final = ""
         exito = False
         
+        # Configuración de velocidad para acelerar la respuesta del modelo
+        configuracion_velocidad = {
+            "temperature": 0.3,          # Respuestas más directas y estables
+            "max_output_tokens": 800,    # Límite de longitud para agilizar la generación
+        }
+        
         for key in api_keys:
             try:
                 genai.configure(api_key=key)
                 
-                # Modelo actualizado exactamente como lo pidió el mensaje de error de Google
-                model = genai.GenerativeModel("gemini-3.8-flash")
+                model = genai.GenerativeModel(
+                    model_name="gemini-3.8-flash",
+                    generation_config=configuracion_velocidad
+                )
                 
                 content_inputs = []
                 if image_pil:
                     content_inputs.append(image_pil)
                 content_inputs.append(prompt)
                 
+                # Recortar el historial a los últimos 6 mensajes para aligerar la carga de procesamiento
                 gemini_history = [
                     {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]}
-                    for m in st.session_state.messages[:-1] if m["content"]
+                    for m in st.session_state.messages[-7:-1] if m["content"]
                 ]
                 
                 chat = model.start_chat(history=gemini_history)
@@ -206,4 +215,4 @@ if prompt := st.chat_input("Escribe tu consulta a SAY...", key="main_chat_input_
             placeholder.markdown(texto_final)
             
         st.session_state.messages.append({"role": "assistant", "content": texto_final, "image": None})
-        
+    
