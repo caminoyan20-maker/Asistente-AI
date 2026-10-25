@@ -10,11 +10,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. Control de Estado para la Introducción (Splash Screen)
+# 2. Control de Estado para la Pantalla de Bienvenida (Intro)
 if "intro_visto" not in st.session_state:
     st.session_state.intro_visto = False
 
-# Estilos CSS avanzados para replicar el diseño Cyberpunk / Neón exacto
+# Estilos CSS Cyberpunk / Neón optimizados
 st.markdown("""
     <style>
     .stApp {
@@ -26,7 +26,7 @@ st.markdown("""
         padding: 10px 0;
     }
     .neon-title {
-        font-size: 2.8rem;
+        font-size: 3rem;
         font-weight: 800;
         color: #00e5ff;
         text-shadow: 0 0 10px rgba(0, 229, 255, 0.8), 
@@ -36,27 +36,27 @@ st.markdown("""
         letter-spacing: 3px;
     }
     .neon-subtitle {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         color: #80d8ff;
         text-transform: uppercase;
         letter-spacing: 4px;
         margin-top: 5px;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
         text-shadow: 0 0 8px rgba(128, 216, 255, 0.6);
     }
     .stChatMessage {
-        background-color: rgba(13, 27, 42, 0.9) !important;
+        background-color: rgba(13, 27, 42, 0.95) !important;
         border: 1px solid rgba(0, 229, 255, 0.4);
         border-radius: 12px;
-        box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+        box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
     }
-    /* Contenedor con marco estilo neón futurista */
+    /* Contenedor estilo marco neón para la segunda imagen */
     .neon-frame {
-        border: 2px solid rgba(0, 229, 255, 0.5);
-        border-radius: 15px;
-        padding: 12px;
-        box-shadow: 0 0 15px rgba(0, 229, 255, 0.3), inset 0 0 15px rgba(0, 229, 255, 0.1);
-        background: rgba(5, 11, 20, 0.7);
+        border: 2px solid rgba(0, 229, 255, 0.6);
+        border-radius: 16px;
+        padding: 15px;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.35), inset 0 0 15px rgba(0, 229, 255, 0.15);
+        background: rgba(5, 11, 20, 0.85);
         margin-bottom: 20px;
     }
     </style>
@@ -83,7 +83,7 @@ if not api_keys:
     st.error("⚠️ No se encontró ninguna API Key configurada en los Secrets.")
     st.stop()
 
-# 4. PANTALLA DE INTRODUCCIÓN (Primera Imagen: Cerebro Holográfico)
+# 4. PANTALLA DE BIENVENIDA (Primera Imagen: Cerebro Holográfico)
 if not st.session_state.intro_visto:
     st.markdown("""
         <div class='hero-container'>
@@ -104,7 +104,7 @@ if not st.session_state.intro_visto:
         st.rerun()
     st.stop()
 
-# 5. INTERFAZ PRINCIPAL (Estructura interna con la segunda imagen integrada)
+# 5. INTERFAZ PRINCIPAL (Segunda Imagen dentro del marco y diseño completo)
 with st.sidebar:
     st.markdown("### ⚙️ Panel de Control SAY")
     if st.button("🏠 Ver Intro Nuevamente", use_container_width=True):
@@ -114,7 +114,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# Marco estilo neón que contiene la identidad visual de la mano robótica
+# Marco estilo neón con la segunda imagen integrada exactamente como pediste
 st.markdown("<div class='neon-frame'>", unsafe_allow_html=True)
 try:
     main_img = Image.open("1792876108417.jpg")
@@ -123,15 +123,20 @@ except Exception:
     pass
 
 st.markdown("""
-    <div class="hero-container" style="padding: 5px 0;">
-        <div class="neon-title" style="font-size: 2rem;">SAY AI</div>
-        <div class="neon-subtitle">Núcleo Cuántico &bull; Búsqueda Inteligente</div>
+    <div class="hero-container" style="padding: 5px 0 0 0;">
+        <div class="neon-title" style="font-size: 2.2rem;">SAY AI</div>
+        <div class="neon-subtitle">Búsqueda Cuántica Multimodal</div>
     </div>
 """, unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Opción de galería para subir imágenes y buscar información a través de ellas
-uploaded_file = st.file_uploader("📂 Sube una imagen desde tu galería para consultarle a SAY:", type=["jpg", "jpeg", "png"])
+# Opción compacta para subir imágenes desde la galería justo arriba del chat
+with st.expander("📁 Adjuntar imagen desde la galería para consultar", expanded=False):
+    uploaded_file = st.file_uploader("Selecciona una imagen (PNG, JPG)", type=["jpg", "jpeg", "png"])
+
+if uploaded_file is not None:
+    img_preview = Image.open(uploaded_file)
+    st.image(img_preview, width=180, caption="Imagen lista para enviar")
 
 # Historial de chat
 if "messages" not in st.session_state:
@@ -141,20 +146,21 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
         if "image" in message and message["image"] is not None:
-            st.image(message["image"], width=250)
+            st.image(message["image"], width=220)
 
-# Entrada de chat con memoria y soporte multimodal
-if prompt := st.chat_input("Escribe un mensaje o pregunta sobre la imagen..."):
+# Entrada de chat con memoria y soporte multimodal corregido
+if prompt := st.chat_input("Escribe tu consulta a SAY..."):
     image_pil = None
     if uploaded_file is not None:
         image_pil = Image.open(uploaded_file)
+        uploaded_file = None # Limpiar después de capturar
 
     st.session_state.messages.append({"role": "user", "content": prompt, "image": image_pil})
     
     with st.chat_message("user"):
         st.markdown(prompt)
         if image_pil:
-            st.image(image_pil, width=250)
+            st.image(image_pil, width=220)
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
@@ -166,7 +172,7 @@ if prompt := st.chat_input("Escribe un mensaje o pregunta sobre la imagen..."):
         for key in api_keys:
             try:
                 genai.configure(api_key=key)
-                # Modelo estándar y compatible para evitar errores 404
+                # Forzar nombre de modelo limpio y estándar sin prefijos extraños
                 model = genai.GenerativeModel("gemini-1.5-flash")
                 
                 content_inputs = []
@@ -195,7 +201,7 @@ if prompt := st.chat_input("Escribe un mensaje o pregunta sobre la imagen..."):
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                     continue
                 else:
-                    texto_final = f"❌ Error: {e}"
+                    texto_final = f"❌ Error de conexión: {e}"
                     placeholder.markdown(texto_final)
                     exito = True
                     break
